@@ -18,6 +18,29 @@ var TalentPRD = (() => {
   return null;
  }
  function agencies(t){const records=typeof talentAgencies==='function'?talentAgencies(t):[];const out=[...records];if(t.currentMcn!=null&&!out.some(r=>r.mcn===t.currentMcn))out.unshift({mcn:t.currentMcn,rate:null});return out.sort((a,b)=>(a.mcn===t.currentMcn?-1:0)-(b.mcn===t.currentMcn?-1:0));}
+ function supplierSubjectAccounts(accounts,supplierId,subject){
+  const matches=(id,name,parent)=>id?subject.ids.includes(id):Boolean(parent===supplierId&&name&&name===subject.name);
+  return accounts.filter(t=>{
+   const own=owner(t),selected=own?.subjects?.find(item=>item.id===own.subjectId)||own?.subjects?.[0];
+   if(own&&matches(own.subjectId||selected?.id,selected?.name||own.name,own.id))return true;
+   const platform=Object.keys(subject.profiles||{}).find(key=>SupplierCooperation.mediaLabels[key]===t.media&&(t.media!=='广点通-互选'||key===mediaName(t)+'互选'));
+   if(t.currentMcn!=null&&platform&&subject.profiles[platform].platformSupplierId==='mcn:'+t.currentMcn)return true;
+   return agencies(t).some(agency=>matches(agency.subjectId||(!agency.subjectName?'mcn:'+agency.mcn+':'+(t.subject??0):null),agency.subjectName,'mcn:'+agency.mcn));
+  });
+ }
+ function supplierSubjects(supplierId,seed,accounts){
+  const byName=new Map(seed.map(subject=>[subject.name,{...subject,ids:[subject.id].filter(Boolean)}]));
+  for(const record of SupplierCooperation.subjectsFor(supplierId)){
+   const previous=byName.get(record.name);
+   byName.set(record.name,{...previous,...record,ids:[...(previous?.ids||[]),record.id],recordId:record.id,
+    type:record.entityType==='私付'?'private':'public'});
+  }
+  return [...byName.values()].map(subject=>{
+   const linked=supplierSubjectAccounts(accounts,supplierId,subject);
+   const media=subject.recordId?(subject.media||[]).map(key=>SupplierCooperation.mediaLabels[key]||key):[...new Set([...(subject.media||[]),...linked.map(t=>t.media)])];
+   return {...subject,accounts:linked,media};
+  });
+ }
  const types=t=>[...(owner(t)?['野生达人']:[]),...(agencies(t).length||t.currentMcnName?['机构达人']:[])];
  function affiliations(t){
   const own=owner(t),result=[];
@@ -61,5 +84,5 @@ var TalentPRD = (() => {
  function applyPlatformUpdate(t,incoming){const allowed=['avatar','avatarUrl','name','region','province','city','gender','phone','wechat','contact','accountId','accountNumber','platformId','homepage','fans','cpm','cpe','bio'];return mergeNonempty(t,Object.fromEntries(Object.entries(incoming).filter(([key])=>allowed.includes(key))));}
  function hydrate(t){const p=read('xmfx-list-profile:'+t.id,{}),extracted=extractedContacts(t.bio);for(const key of ['phone','wechat'])if(!Object.hasOwn(p,key)&&!t[key]&&extracted[key])t[key]=extracted[key];Object.assign(t,p);if(!t.gender&&!t.isLocal&&/^T\d+-\d+$/.test(t.id))t.gender=['女','男','女','男','女','男','女','女','男','男','女','女'][t.index%12];if(!t.liaisons)t.liaisons=String(t.liaison||(!t.isLocal?mcns[t.originMcn]?.owner:'林晓')||'林晓').split(/[、,，]/);if(!t.creator)t.creator=t.isLocal?'林晓':mcns[t.originMcn]?.owner||'林晓';return t;}
  function notices(t){const inquiry=Object.entries(read('xmfx-project-inquiry-prototype',{})).filter(([,items])=>items.some(i=>i.talentId===t.id&&['返点已确认','询号完成','待生成采购单'].includes(i.stage)&&!i.purchaseOrderId)).map(([id])=>id),self=[...new Set(orders(t).filter(o=>o.operationMode==='自运'&&!o.acceptedAt&&o.status!=='已验收').map(o=>o.projectId||o.projectName).filter(Boolean))];return ['达人信息已提交审核',...(inquiry.length?['达人在项目['+inquiry.join('、')+']的询号流程中，此处返点不会影响询号返点，如需修改，请前往项目处修改']:[]),...(self.length?['达人在项目['+self.join('、')+']的自运采购单中存在未验收商单，此处返点不影响原商单返点，如需修改，请前往项目处修改']:[])];}
- return {read,write,mediaName,entered,employees,mcnRate,suppliers,owner,agencies,types,affiliations,identities,metricFields,orders,inDays,completed,metrics,categories,brandCategories,brandHistory,tagSources,tags,matchHistory,score,mergeNonempty,phoneValid,rateValid,hydrate,extractedContacts,applyPlatformUpdate,notices};
+ return {read,write,mediaName,entered,employees,mcnRate,suppliers,owner,agencies,supplierSubjects,types,affiliations,identities,metricFields,orders,inDays,completed,metrics,categories,brandCategories,brandHistory,tagSources,tags,matchHistory,score,mergeNonempty,phoneValid,rateValid,hydrate,extractedContacts,applyPlatformUpdate,notices};
 })();

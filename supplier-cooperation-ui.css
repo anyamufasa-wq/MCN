@@ -1,0 +1,16 @@
+.supplier-shared-dialog{box-sizing:border-box;width:min(580px,calc(100% - 32px));max-height:90vh;border:1px solid #dce5f0;border-radius:10px;padding:24px;color:#283b53;background:#fff}
+.supplier-shared-dialog::backdrop{background:#182c4860}
+.supplier-shared-dialog h2{margin:0 0 18px;font-size:19px}
+.supplier-shared-dialog fieldset{margin:12px 0;padding:8px 12px;border:1px solid #dce5f0;border-radius:6px}
+.supplier-shared-dialog fieldset label{display:inline-block;margin:4px 12px 4px 0}
+.supplier-dialog-field{display:grid;gap:6px}
+.supplier-dialog-field input{padding:8px;border:1px solid #cfd9e7;border-radius:5px;font:inherit}
+.supplier-shared-dialog footer{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.supplier-shared-dialog button{padding:6px 12px;border:1px solid #cfd9e7;border-radius:5px;background:#fff;color:#285fd0;font:inherit;cursor:pointer}
+.supplier-shared-dialog button[type=submit]{background:#2865e8;color:#fff}
+.supplier-shared-dialog [role=alert]{color:#b33138}
+.supplier-subject-drawer{position:fixed;inset:0 0 0 auto;margin:0;width:min(640px,100%);height:100%;max-width:100%;max-height:100%;border-radius:10px 0 0 10px;overflow:auto}
+.supplier-subject-drawer header{display:flex;align-items:center;justify-content:space-between}
+.supplier-subject-drawer header h2{margin:0}
+.supplier-subject-drawer dl{display:grid;grid-template-columns:100px 1fr;gap:10px;margin:18px 0}
+.supplier-subject-drawer dd{margin:0;overflow-wrap:anywhere}

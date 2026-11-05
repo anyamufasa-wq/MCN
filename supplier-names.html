@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width,initial-scale=1">
+ <title>供应商名称 · 新美繁星</title>
+ <link rel="stylesheet" href="supplier-cooperation-ui.css">
+ <script src="supplier-cooperation.js" defer></script>
+ <script src="supplier-cooperation-ui.js" defer></script>
+ <script src="supplier-names.js" defer></script>
+ <style>
+ body{margin:0;background:#f3f6fb;color:#283b53;font:14px system-ui,sans-serif}
+ header,main{padding:20px 28px}header{background:white;border-bottom:1px solid #e5ebf5}
+ nav{display:flex;gap:20px;flex-wrap:wrap}a{color:#2865e8;text-decoration:none}
+ main{max-width:1100px;margin:22px auto;background:white;border:1px solid #e5ebf5;border-radius:10px}
+ .toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+ h1{font-size:22px;margin:0}.toolbar button{background:#2865e8;color:white;padding:9px 14px;border:0;border-radius:6px;cursor:pointer}
+ table{width:100%;border-collapse:collapse}th,td{padding:12px;text-align:left;border-bottom:1px solid #e5ebf5}th{background:#f4f7fc}
+ td button{border:0;background:none;color:#2865e8;cursor:pointer}td button:disabled{color:#8292a8;cursor:default}
+ </style>
+</head>
+<body>
+ <header><nav aria-label="合作方中心"><a href="index.html">首页</a><a href="新建供应商主体.html">供应商主体</a><a href="supplier-names.html" aria-current="page">供应商名称</a><a href="mcn-talents-list.html">MCN与达人</a></nav></header>
+ <main>
+  <div class="toolbar"><h1>供应商名称</h1><button type="button" id="createName">新建供应商名称</button></div>
+  <p role="status" id="nameStatus"></p>
+  <table><thead><tr><th>供应商名称</th><th>供应商类型</th><th>业务类型</th><th>对接人</th><th>操作</th></tr></thead><tbody id="names"></tbody></table>
+ </main>
+</body>
+</html>

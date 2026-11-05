@@ -11,7 +11,7 @@
  let accounts=[],profiles={},attachments={};
 
  function addNavigation(){
-  const supplierLinks=[['供应商主体','新建供应商主体.html'],['MCN管理','index.html'],['MCN与达人','mcn-talents-list.html']];
+  const supplierLinks=[['供应商主体','新建供应商主体.html'],['供应商名称','supplier-names.html'],['MCN管理','index.html'],['MCN与达人','mcn-talents-list.html']];
   const businessLinks=[['达人库','talent-list.html'],['野生达人','wild-talent-list.html'],['新建达人','talent-create.html']];
   const header=document.querySelector('.rr-header');
   for(const item of header.querySelectorAll('li.el-menu-item')){
@@ -24,7 +24,9 @@
   if(subject){
    subject.classList.add('is-active');
    subject.innerHTML='<a class="supplier-nav-link" href="新建供应商主体.html" aria-current="page">供应商主体</a>';
-   for(const [label,url] of supplierLinks.slice(1)){
+   const existingName=[...subject.parentElement.children].find(item=>item.textContent.trim()==='供应商名称');
+   if(existingName)existingName.innerHTML='<a class="supplier-nav-link" href="supplier-names.html">供应商名称</a>';
+   for(const [label,url] of supplierLinks.slice(existingName?2:1)){
     const item=document.createElement('li');item.className='el-menu-item';item.innerHTML=`<a class="supplier-nav-link" href="${url}">${label}</a>`;subject.parentElement.append(item);
    }
   }
@@ -48,7 +50,7 @@
   details.addEventListener('change',update);update();
   return update;
  }
- const updateBusiness=multiChoice('业务类型','businessTypes',['达人广告','效果广告','品牌广告','物业社群','物业零售','素材','账号','MCN','其他']);
+ const updateBusiness=multiChoice('业务类型','businessTypes',SupplierCooperation.businessOptions);
  const updateMedia=multiChoice('媒体平台','media',Object.keys(SupplierCooperation.mediaLabels));
  const talentSelect=document.createElement('select');talentSelect.name='talentType';talentSelect.className='supplier-input';
  talentSelect.innerHTML='<option value="">请选择达人类型</option><option>野生达人</option><option>机构达人</option>';
@@ -63,6 +65,14 @@
    input.value=input.closest('label').querySelector('.radio-title,.el-checkbox__label')?.textContent.trim()||input.value;
   });
  }
+ const publicPayment=form.querySelector('[name=entityType][value="公付"]');
+ publicPayment.checked=true;
+ publicPayment.closest('label').parentElement.prepend(publicPayment.closest('label'));
+ form.classList.add('supplier-subject-form');
+ const column=item=>item.closest('.n-form-item')||item;
+ const invoiceField=byLabel('发票类型'),licenseField=byLabel('营业执照'),identityField=byLabel('身份证头像面');
+ const identityColumn=column(identityField);
+ licenseField.after(identityField);if(identityColumn!==identityField)identityColumn.remove();
  const mediaField=byLabel('媒体平台'),talentField=byLabel('达人类型');
  const typeField=byLabel('是否为媒体供应商');
  const supplierFields=document.createElement('div');
@@ -70,10 +80,9 @@
  supplierFields.innerHTML=`<fieldset><legend>供应商类型 <span aria-hidden="true">*</span></legend><div class="supplier-choices" data-supplier-types></div></fieldset>
  <div class="supplier-name-field"><label for="supplierName">供应商名称</label><div><select id="supplierName" name="supplierNameId" class="supplier-input"></select><button type="button" class="el-button" id="createSupplierName">快速创建供应商名称</button></div></div>
  <label class="supplier-cycle">账期（天）<input name="accountDays" class="supplier-input" type="number" min="0" step="1"></label>`;
- byLabel('业务类型').after(supplierFields);
- typeField.remove();byLabel('是否为MCN机构').remove();
+ column(byLabel('业务类型')).after(supplierFields);
+ column(typeField).remove();column(byLabel('是否为MCN机构')).remove();
  const typeOptions=supplierFields.querySelector('[data-supplier-types]'),nameSelect=form.elements.supplierNameId,cycle=form.elements.accountDays;
- const nameDialog=document.createElement('dialog');nameDialog.className='supplier-account-dialog';document.body.append(nameDialog);
  const businessTypes=()=>new FormData(form).getAll('businessTypes');
  const supplierType=()=>form.elements.supplierType?.value||'';
  const hasCooperation=()=>['MCN','达人'].includes(supplierType());
@@ -103,53 +112,46 @@
   }
   syncCycle();syncFields();
  };
- supplierFields.querySelector('#createSupplierName').onclick=()=>{
-  const business=businessTypes(),allowed=SupplierCooperation.availableTypes(business);
-  nameDialog.innerHTML=`<form><h3>创建供应商名称</h3><div class="supplier-field-grid">
-  <label>供应商名称<input name="name" class="supplier-input" required maxlength="50"></label>
-  <label>供应商类型<select name="type" class="supplier-input" required>${allowed.map(type=>`<option>${type}</option>`).join('')}</select></label>
-  <label>业务类型<input class="supplier-input" value="${escape(business.join('、'))}" readonly></label>
-  </div><p role="status"></p><div class="supplier-dialog-actions"><button type="button" class="el-button">取消</button><button class="el-button el-button--primary">创建</button></div></form>`;
-  const editor=nameDialog.querySelector('form');
-  editor.elements.type.value=supplierType()||'其他';
-  editor.querySelector('[type=button]').onclick=()=>nameDialog.close();
-  editor.onsubmit=e=>{
-   e.preventDefault();
-   const name=editor.elements.name.value.trim(),type=editor.elements.type.value,feedback=editor.querySelector('[role=status]');
-   if(!name||!business.length){feedback.textContent='请填写供应商名称，并在主体表单选择业务类型';return;}
-   let record=SupplierCooperation.names().find(item=>item.name===name&&item.type===type);
-   if(!record){
-    record={id:'SN-'+Date.now().toString(36),name,type,businessTypes:business};
-    try{SupplierCooperation.createName(record);}catch{feedback.textContent='创建失败，请检查浏览器存储设置';return;}
-   }
-   drawTypes(type);drawNames(record.id);syncCycle();syncFields();nameDialog.close();
-  };
-  nameDialog.showModal();
- };
+ supplierFields.querySelector('#createSupplierName').onclick=()=>SupplierCooperationUI.openName({
+  record:{name:form.elements.entityType.value==='私付'?form.elements.name.value:'',businessTypes:businessTypes(),type:supplierType()||'其他'},
+  types:SupplierCooperation.availableTypes(businessTypes()),
+  onSave(record){drawTypes(record.type);drawNames(record.id);syncCycle();syncFields();}
+ });
  const profileHost=document.createElement('div');profileHost.className='supplier-platforms';
- form.querySelector('.mcn-platform-form-item').remove();
- supplierFields.after(mediaField,talentField,profileHost);
+ column(form.querySelector('.mcn-platform-form-item')).remove();
+ supplierFields.after(column(mediaField),column(talentField),profileHost);
  const selectedMedia=()=>new FormData(form).getAll('media');
+ let activeMedia='';
  function drawProfiles(){
-  const active=hasCooperation();profileHost.hidden=!active;
-  profileHost.innerHTML=active?selectedMedia().map((media,index)=>{
+  const mediaOptions=hasCooperation()?selectedMedia():[],isMcn=supplierType()==='MCN';
+  if(!mediaOptions.includes(activeMedia))activeMedia=mediaOptions[0]||'';
+  profileHost.hidden=!mediaOptions.length;
+  const tabs=isMcn&&mediaOptions.length?`<div class="supplier-media-tabs" role="group" aria-label="媒体平台">${mediaOptions.map(media=>`<button type="button" class="el-button" data-profile-tab="${escape(media)}" aria-pressed="${media===activeMedia}">${escape(media)}</button>`).join('')}</div>`:'';
+  profileHost.innerHTML=tabs+(isMcn?mediaOptions.filter(media=>media===activeMedia):mediaOptions).map(media=>{
    const profile=profiles[media]||{};
    const institution=supplierType()==='MCN'? `<label>机构名称 / ID<input class="supplier-input" data-profile-field="identifier" value="${escape(profile.identifier)}"></label>`:'';
-   const query=institution?`<p class="supplier-platform-hint">填写机构名称/ID并查询后，达人库将自动更新机构下达人信息</p><button class="el-button" type="button" data-query-platform="${index}">查询</button> <span role="status"></span>`:'';
+   const query=institution?`<p class="supplier-platform-hint">填写机构名称/ID并查询后，达人库将自动更新机构下达人信息</p><button class="el-button" type="button" data-query-platform>查询</button> <span role="status">${escape(profile.queryMessage)}</span><details class="supplier-id-help"><summary>如何获取机构ID</summary><p>登录${escape(media)}，在机构后台的机构资料页查看机构 ID。</p></details>`:'';
    return `<div class="supplier-platform-card" data-platform="${escape(media)}"><strong>${escape(media)}</strong><div class="supplier-field-grid">${institution}<label>返点政策（%）<input class="supplier-input" data-profile-field="rate" type="number" min="0" max="100" step="0.01" required value="${escape(profile.rate)}"></label></div>${query}</div>`;
-  }).join(''):'';
+  }).join('');
  }
  profileHost.addEventListener('input',e=>{
   const key=e.target.dataset.profileField;if(!key)return;
-  const media=e.target.closest('[data-platform]').dataset.platform;(profiles[media]??={})[key]=e.target.value;
+  const card=e.target.closest('[data-platform]'),media=card.dataset.platform,profile=profiles[media]??={};
+  profile[key]=e.target.value;
+  if(key==='identifier'){delete profile.platformSupplierId;delete profile.queryMessage;card.querySelector('[role=status]').textContent='';}
  });
  profileHost.addEventListener('click',e=>{
+  const tab=e.target.closest('[data-profile-tab]');
+  if(tab){activeMedia=tab.dataset.profileTab;drawProfiles();profileHost.querySelector('[aria-pressed=true]')?.focus();return;}
   const button=e.target.closest('[data-query-platform]');if(!button)return;
   const card=button.closest('[data-platform]'),media=card.dataset.platform,query=String(profiles[media]?.identifier||'').trim();
   const records=read().filter(record=>record.media?.includes(media));
   const match=records.find(record=>record.id===query||record.name===query||record.profiles?.[media]?.identifier===query);
-  const example=['星澜传媒','青禾内容','云栖文化'].find(name=>name===query);
-  card.querySelector('[role=status]').textContent=!query?'请输入机构名称或 ID':match?'找到本地主体：'+match.name:example?'找到示例机构：'+example:'本地未找到匹配机构';
+  const example=SupplierCooperation.names().find(name=>name.type==='MCN'&&name.id.startsWith('mcn:')&&(name.name===query||name.id===query));
+  const profile=profiles[media]??={};
+  profile.platformSupplierId=example?.id||match?.profiles?.[media]?.platformSupplierId;
+  profile.queryMessage=!query?'请输入机构名称或 ID':example?'已匹配示例机构：'+example.name:match?'找到本地主体：'+match.name:'本地未找到匹配机构';
+  card.querySelector('[role=status]').textContent=profile.queryMessage;
  });
 
  const switchField=byLabel('添加收付款账户'),accountSwitch=switchField.querySelector('input');
@@ -192,13 +194,13 @@
  }
  function syncFields(){
   const type=supplierType();
-  mediaField.hidden=!hasCooperation()&&type!=='媒体供应商';
-  talentField.hidden=type!=='达人';talentSelect.disabled=talentField.hidden;
-  cycle.closest('label').hidden=!hasCooperation();cycle.disabled=!hasCooperation();
+  column(mediaField).hidden=!hasCooperation()&&type!=='媒体供应商';
+  column(talentField).hidden=type!=='达人';talentSelect.disabled=column(talentField).hidden;
+  cycle.required=hasCooperation();cycle.closest('label').classList.toggle('required',cycle.required);
   const privatePayment=new FormData(form).get('entityType')==='私付';
-  byLabel('发票类型').hidden=privatePayment;
-  byLabel('营业执照').hidden=privatePayment;
-  byLabel('身份证头像面').hidden=!privatePayment;
+  invoiceField.hidden=privatePayment;
+  licenseField.hidden=privatePayment;
+  identityField.hidden=!privatePayment;
   for(const input of form.querySelectorAll('input[type=radio],input[type=checkbox]')){
    input.closest('.el-radio,.el-checkbox')?.classList.toggle('is-checked',input.checked);
    input.closest('.el-radio__input,.el-checkbox__input')?.classList.toggle('is-checked',input.checked);
@@ -228,18 +230,23 @@
   for(const name of ['businessTypes','media','invoices','entityType'])for(const input of form.querySelectorAll(`[name="${name}"]`))input.checked=Array.isArray(record[name])?record[name].includes(input.value):record[name]===input.value;
   const type=record.supplierType||(record.mcn==='是'?'MCN':record.mediaSupplier==='是'?'媒体供应商':'其他');
   drawTypes(SupplierCooperation.availableTypes(businessTypes()).includes(type)?type:'其他');drawNames(record.supplierNameId);syncCycle();
-  if(!cycle.value)cycle.value=Object.values(profiles).find(profile=>profile.days!==undefined&&profile.days!=='')?.days??'';
+  if(!cycle.value)cycle.value=record.accountDays??Object.values(profiles).find(profile=>profile.days!==undefined&&profile.days!=='')?.days??'';
   attachmentLabels.forEach(label=>{byLabel(label).querySelector('.supplier-file-name').textContent=attachments[label]||'';});
   updateBusiness();updateMedia();syncFields();status.textContent='正在编辑 '+record.name;
  }
- historyPanel.addEventListener('click',e=>{const button=e.target.closest('[data-supplier-record]');const record=button&&read().find(item=>item.id===button.dataset.supplierRecord);if(record)loadRecord(record);});
+ historyPanel.addEventListener('click',e=>{
+  const button=e.target.closest('[data-supplier-record]'),record=button&&read().find(item=>item.id===button.dataset.supplierRecord);
+  if(record)SupplierCooperationUI.openSubject({subject:{...record,recordId:record.id,type:record.entityType==='私付'?'private':'public',status:record.status||'正常'},supplierId:record.supplierNameId||''});
+ });
  form.id='supplierSubjectForm';save.type='submit';save.setAttribute('form',form.id);
  form.onsubmit=e=>{
   e.preventDefault();const data=new FormData(form),name=String(data.get('name')||'').trim();
   if(!name||!data.getAll('businessTypes').length){status.textContent='请填写主体名称并选择业务类型';return;}
   if(hasCooperation()&&(!nameSelect.value||!selectedMedia().length||cycle.value==='')){status.textContent='请选择供应商名称和媒体平台，并填写账期';return;}
+  const missing=hasCooperation()&&selectedMedia().find(media=>profiles[media]?.rate==null||profiles[media].rate===''||Number(profiles[media].rate)<0||Number(profiles[media].rate)>100);
+  if(missing){activeMedia=missing;drawProfiles();status.textContent='请填写'+missing+'的返点政策';profileHost.querySelector('[data-profile-field=rate]')?.focus();return;}
   const {accountDays,...fields}=Object.fromEntries(data);
-  const id=editingId||'SP-'+Date.now().toString(36),record={...fields,id,name,businessTypes:businessTypes(),media:mediaField.hidden?[]:selectedMedia(),invoices:data.get('entityType')==='公付'?data.getAll('invoices'):[],profiles:hasCooperation()?Object.fromEntries(selectedMedia().map(media=>[media,{rate:profiles[media]?.rate,identifier:supplierType()==='MCN'?profiles[media]?.identifier:undefined}])):{},withAccounts:accountSwitch.checked,accounts:accountSwitch.checked?accounts:[],attachments};
+  const id=editingId||'SP-'+Date.now().toString(36),record={...fields,id,name,accountDays:hasCooperation()||accountDays===''?undefined:Number(accountDays),businessTypes:businessTypes(),media:column(mediaField).hidden?[]:selectedMedia(),invoices:data.get('entityType')==='公付'?data.getAll('invoices'):[],profiles:hasCooperation()?Object.fromEntries(selectedMedia().map(media=>[media,supplierType()==='MCN'?profiles[media]:{rate:profiles[media]?.rate}])):{},withAccounts:accountSwitch.checked,accounts:accountSwitch.checked?accounts:[],attachments};
   const records=read();
   if(record.supplierNameId&&records.some(item=>item.id!==id&&item.supplierNameId===record.supplierNameId&&item.name===name)){
    status.textContent='该供应商名称下已有同名主体，请打开已有主体编辑';return;
@@ -247,7 +254,7 @@
   try{
    if(hasCooperation()&&SupplierCooperation.accountDays(nameSelect.value)===null)SupplierCooperation.saveAccount(nameSelect.value,Number(accountDays));
    const index=records.findIndex(item=>item.id===id);if(index<0)records.push(record);else records[index]=record;
-   localStorage.setItem(storageKey,JSON.stringify(records));editingId=id;syncCycle();
+   localStorage.setItem(storageKey,JSON.stringify(records));editingId=id;if(hasCooperation())syncCycle();
    status.textContent='已保存到本地';
    if(hasCooperation()){
     const detail=document.createElement('a');detail.className='supplier-save-status';detail.textContent='查看MCN与达人详情';

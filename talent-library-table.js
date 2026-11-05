@@ -36,7 +36,7 @@ function talentGenderIcon(t){
 
 function talentTableData(){return typeof rows==='undefined'?talentData:rows;}
 
-function renderTalentLibraryTable(head, body, visible, {detailHref, selectable=false, manageAgency=true}) {
+function renderTalentLibraryTable(head, body, visible, {detailHref, onEdit, selectable=false, manageAgency=true}) {
  head.innerHTML=`<tr><th>${selectable?'<label class="list-select-heading"><input type="checkbox" id="listSelectPage" aria-label="全选当前页">达人信息</label>':'达人信息'}</th>
   <th>垂类标签<div class="tag-source-legend"><span class="platform-legend">平台</span><span class="internal-legend">自打</span></div></th>
   <th>账号数据</th>
@@ -66,6 +66,11 @@ function renderTalentLibraryTable(head, body, visible, {detailHref, selectable=f
    </td>
   </tr>`;
  }).join('')||'<tr><td colspan="9" class="empty">暂无符合条件的达人，请调整筛选条件或重置。</td></tr>';
+ if(onEdit)body.querySelectorAll('[data-list-edit]').forEach(button=>button.onclick=event=>{
+  event.stopPropagation();
+  const talent=visible.find(item=>item.id===button.dataset.listEdit);
+  if(talent)onEdit(talent);
+ });
  body.querySelectorAll('[data-all-quotes]').forEach(button=>{
   const open=()=>openAllQuotes(button.dataset.allQuotes,button);
   button.onmouseenter=button.onfocus=button.onclick=open;

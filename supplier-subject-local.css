@@ -37,3 +37,10 @@
 .supplier-cycle{max-width:320px}
 .supplier-platform-card{border-color:#b4d2fa;background:#f5f9ff}
 .supplier-platform-hint{font-size:13px;color:#456585;margin:10px 0}
+.supplier-subject-form .supplier-cooperation-fields,.supplier-subject-form .supplier-platforms{box-sizing:border-box;flex:0 0 100%;width:100%;padding-inline:10px}
+.supplier-subject-form .el-form-item__label{width:108px!important;flex-shrink:0}
+.supplier-subject-form .supplier-cycle.required::before{content:"*";color:#e65f62;position:absolute;transform:translateX(-10px)}
+.supplier-media-tabs{display:flex;flex-wrap:wrap;gap:8px}
+.supplier-media-tabs [aria-pressed=true]{color:#2865e8;border-color:#79a4f3;background:#edf4ff}
+.supplier-id-help{margin-top:9px;color:#456585}
+.supplier-id-help summary{cursor:pointer}
