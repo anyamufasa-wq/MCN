@@ -17,7 +17,8 @@
 #section-orders .talent-orders{table-layout:auto;width:max-content;min-width:2330px;border-collapse:separate;border-spacing:0}
 #section-orders .talent-orders th,#section-orders .talent-orders td{width:auto;min-width:130px;white-space:nowrap!important;overflow-wrap:normal;word-break:normal;padding:14px 16px;vertical-align:middle}
 #section-orders .talent-orders th:first-child,#section-orders .talent-orders td:first-child,#section-orders .talent-orders th:last-child,#section-orders .talent-orders td:last-child{min-width:170px}
-#section-orders .talent-orders th:nth-child(3),#section-orders .talent-orders td:nth-child(3),#section-orders .talent-orders th:nth-child(12),#section-orders .talent-orders td:nth-child(12),#section-orders .talent-orders th:nth-child(13),#section-orders .talent-orders td:nth-child(13){min-width:265px}
+#section-orders .talent-orders th:nth-child(3),#section-orders .talent-orders td:nth-child(3),#section-orders .talent-orders th:nth-child(13),#section-orders .talent-orders td:nth-child(13){min-width:265px}
+#section-orders .talent-orders .order-rebate-rate{min-width:64px;padding-inline:12px;text-align:right}
 #section-orders .talent-orders th:nth-child(11),#section-orders .talent-orders td:nth-child(11){min-width:185px}
 .brand-customers{min-width:850px}.brand-customers th,.brand-customers td{white-space:nowrap;padding:14px 16px}.brand-customers td[rowspan]{vertical-align:middle;border-right:1px solid #e8edf5;min-width:210px}.brand-customers td[rowspan] .link{margin-top:8px}.brand-client-list{display:flex;flex-wrap:wrap;align-items:center;gap:4px;min-width:220px;max-width:420px;white-space:normal}.brand-client-list .link{text-align:left}.client-separator{color:#8993a1}.completion-range{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:#718096;font-size:13px}.completion-range input[type=date]{width:155px;min-width:135px}.completion-error{color:#bd3939;font-size:12px}
 #section-orders .order-filter-grid{display:grid;grid-template-columns:1.15fr 1fr 1.25fr 1fr;gap:12px;margin-bottom:20px;padding:16px;background:#f8fafd;border:1px solid #edf1f6;border-radius:7px;align-items:center}
@@ -157,7 +158,7 @@ function renderOrders(){let rows=filteredOrders(),s=stats(rows);$('orderStats').
  const metricColumns=[['播放量','plays'],['点赞量','likes'],['收藏量','favorites'],['评论量','comments'],['浏览量','views'],['CPM','cpm'],['CPE','cpe'],['阅读量','reads']];
  const columns=['商单号','合作品牌','投放户/关联客户','商单状态','合作金额','平台服务费','归属采购单','商单评分','履约标签','风险预警','所属机构','返点比例','返点金额',...metricColumns.map(([label])=>label)];
  const amount=value=>value==null?'—':'¥ '+value.toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2});
- $('orderHead').innerHTML='<tr>'+columns.map(label=>'<th>'+label+'</th>').join('')+'</tr>';
+ $('orderHead').innerHTML='<tr>'+columns.map(label=>(label==='返点比例'?'<th class="order-rebate-rate">':'<th>')+label+'</th>').join('')+'</tr>';
  $('orderRows').innerHTML=rows.map(o=>{
   const a=advertiserOf(o),c=customerOf(o),m=o.operation==='自运'?mcns[o.selectedMcn]:null;
   const institution=m?`<a href="mcn-talents-detail.html?mcn=${o.selectedMcn}">${esc(m.name)}</a>`:esc(o.operation==='客运'?o.platformMcnName||'':'');
@@ -170,7 +171,7 @@ function renderOrders(){let rows=filteredOrders(),s=stats(rows);$('orderStats').
    <td>${statusBadge(o.status)}</td><td class="num">${amount(o.cooperationAmount)}</td><td class="num">${amount(o.serviceFee)}</td>
    <td>${o.systemOrderId?`<button class="link" data-purchase="${esc(o.systemOrderId)}">${esc(o.systemOrderId)}</button>`:'<span class="quiet">未关联采购单</span>'}</td>
    <td class="num">${o.orderScore==null?'—':o.orderScore.toFixed(1)+' / 5'}</td><td>${orderTagCells(o.fulfillmentTags,'green')}</td><td>${orderTagCells(o.riskWarnings,'orange')}</td>
-   <td>${institution}</td><td class="num">${o.rebateRate==null?'—':pct(o.rebateRate)}</td><td class="num">${amount(o.rebateAmount)}</td>${metrics}</tr>`;
+   <td>${institution}</td><td class="num order-rebate-rate">${o.rebateRate==null?'—':pct(o.rebateRate)}</td><td class="num">${amount(o.rebateAmount)}</td>${metrics}</tr>`;
  }).join('')||'<tr><td colspan="'+columns.length+'" class="empty">暂无符合条件的商单，请调整筛选条件。</td></tr>';
  bind();
 }

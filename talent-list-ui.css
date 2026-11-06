@@ -5,3 +5,4 @@
 .list-owner-name{font-size:13px;color:#536781;overflow-wrap:anywhere;margin-top:-7px}.list-agency-card .list-exit-status{color:#ba7211}
 #listOwnerRebate{margin-top:17px}
 .list-required{color:#d9424c}
+#talentListDrawer input[name="industries"]:disabled{background:#f1f4f8;color:#8490a1;cursor:not-allowed}

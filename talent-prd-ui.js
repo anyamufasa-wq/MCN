@@ -1,11 +1,47 @@
 function listAgencyView(t){const rows=TalentPRD.affiliations(t),pending=TalentPRD.read('xmfx-list-agency-request:'+t.id);return rows.map(r=>`<div class="dense-agency"><div><span class="agency-name-with-tag">${r.url?`<a href="${esc(r.url)}">${esc(r.name)}</a>`:esc(r.name)}${r.type==='平台MCN'?listOfficialIcon():r.type==='达人'?'<span class="prd-person-icon" title="达人自身公司/个人信息，非MCN" aria-label="达人自身公司/个人信息，非MCN">♙</span>':''}</span><b>${r.rate==null?'—':(r.rate*100).toFixed(2)+'%'}</b></div></div>`).join('')+(pending?'<span class="badge orange">待审批</span>':'')||'<span class="muted">无归属机构</span>';}
 function listRecentOrders(t){return TalentPRD.orders(t).filter(o=>TalentPRD.inDays(o.createdAt,180));}
 function listBrandView(t){const history=TalentPRD.brandHistory(t);if(!history.length)return '—';const lines=history.map(b=>`<div class="list-brand-line"><span>${esc(b.name)}</span><small>${b.categories.map(esc).join('、')}</small></div>`).join('');return `<div class="list-brand-wrap ${history.length>2?'is-overflow':''}" tabindex="0"><div class="list-brand-summary">${lines}</div>${history.length>2?`<div class="list-brand-popover" role="tooltip">${lines}</div>`:''}</div>`;}
-function prdEmployeePicker(t){const selected=t.liaisons||[talentLiaison(t)];const employees=[...TalentPRD.employees];selected.filter(v=>v&&v!=='未维护'&&!employees.some(e=>e.name===v)).forEach(v=>employees.push({name:v,department:'其他'}));return `<fieldset class="prd-employees"><legend>对接人</legend>${[...new Set(employees.map(e=>e.department))].map(d=>`<div><strong>${d}</strong>${employees.filter(e=>e.department===d).map(e=>`<label><input type="checkbox" name="liaisons" value="${esc(e.name)}" ${selected.includes(e.name)?'checked':''}>${esc(e.name)}</label>`).join('')}</div>`).join('')}</fieldset>`;}
+function prdEmployeePicker(t){
+ const selected=(t.liaisons||[talentLiaison(t)]).filter(name=>name&&name!=='未维护');
+ const companies=[
+  ['新美繁星',TalentPRD.employees],
+  ['萌神',[{name:'苏晴',department:'采购部'},{name:'程宇',department:'商务部'}]]
+ ];
+ const known=new Set(companies.flatMap(([,employees])=>employees.map(employee=>employee.name)));
+ const legacy=selected.filter(name=>!known.has(name)).map(name=>({name,department:'其他'}));
+ if(legacy.length)companies.push(['已选员工',legacy]);
+ const groups=companies.map(([company,employees])=>{
+  const departments=[...new Set(employees.map(employee=>employee.department))];
+  return `<details class="prd-employee-company"><summary>${esc(company)}</summary>${departments.map(department=>`
+   <details class="prd-employee-department"><summary>${esc(department)}</summary>
+   ${employees.filter(employee=>employee.department===department).map(({name})=>`<label data-search="${esc([company,department,name].join(' '))}"><input type="checkbox" name="liaisons" value="${esc(name)}" ${selected.includes(name)?'checked':''}> <span>${esc(name)}</span></label>`).join('')}</details>`).join('')}</details>`;
+ }).join('');
+ return `<div class="list-drawer-field"><span>对接人</span><details class="prd-employee-picker"><summary aria-label="选择对接人">${esc(selected.join('、')||'请选择对接人')}</summary>
+  <div class="prd-employee-options"><input type="search" placeholder="搜索公司、部门或姓名" aria-label="搜索对接人">
+  ${groups}<span class="muted" data-employee-empty hidden>未找到匹配员工</span></div></details></div>`;
+}
+function bindEmployeePicker(drawer){
+ const picker=drawer.querySelector('.prd-employee-picker'),search=picker.querySelector('input[type=search]');
+ const options=[...picker.querySelectorAll('label[data-search]')],groups=[...picker.querySelectorAll('details')];
+ picker.addEventListener('toggle',()=>{if(picker.open)search.focus();});
+ search.onkeydown=event=>{if(event.key==='Enter')event.preventDefault();};
+ search.oninput=()=>{
+  const query=search.value.trim().toLowerCase();
+  for(const option of options)option.hidden=!option.dataset.search.toLowerCase().includes(query);
+  for(const group of groups){
+   group.hidden=!group.querySelector('label:not([hidden])');
+   group.open=Boolean(query&&!group.hidden);
+  }
+  picker.querySelector('[data-employee-empty]').hidden=options.some(option=>!option.hidden);
+ };
+ picker.onchange=()=>{
+  picker.querySelector('summary').textContent=[...picker.querySelectorAll('input:checked')].map(input=>input.value).join('、')||'请选择对接人';
+ };
+}
 function prdRiskStatus(tags=[]){return tags.some(tag=>tag!=='正常')?'预警':'正常';}
 function listEditTalent(t,onSaved=filter,{detail=false}={}){
  const p=listProfile(t),sources=talentTagSources(t),high=listHighlightDefaults(t);
- const tagFields=[['效果标签','effectTags'],['履约标签','performanceTags'],['风险标签','riskTags'],['自定义标签','customTags']].map(([label,key])=>{
+ const tagFields=[['效果标签','effectTags'],['履约标签','performanceTags'],['风险标签','riskTags']].map(([label,key])=>{
   const values=p[key]||high[key]||[];
   if(detail&&key==='effectTags')return listField(label,key,values.join('、')||'—','readonly');
   if(detail&&key==='riskTags'){
@@ -14,26 +50,47 @@ function listEditTalent(t,onSaved=filter,{detail=false}={}){
   }
   return listField(label,key,values.join('、'));
  }).join('');
- const fields=prdEmployeePicker(t)+listField('联系人','contact',t.contact==='未维护'?'':t.contact,'maxlength="10"')+listField('联系电话','phone',t.phone==='未维护'?'':t.phone,'inputmode="tel" maxlength="11"')+listField('微信','wechat',t.wechat==='未维护'?'':t.wechat,'maxlength="30"')+listField('平台垂类标签','industries',sources.platform.join('、'))+listField('自打垂类标签','contentTags',sources.internal.join('、'))+tagFields+`<label class="list-drawer-field"><span>补充信息</span><textarea name="additionalInfo" rows="4" maxlength="500">${esc(p.additionalInfo||t.supplement||'')}</textarea></label>`;
- listDrawer('编辑 · '+t.name,listEditIdentity(t)+fields,'保存',(data,d)=>{const patch=Object.fromEntries(data);patch.liaisons=data.getAll('liaisons');patch.liaison=patch.liaisons.join('、');if(Array.from(patch.contact).length>10)throw Error('联系人最多10字');if(patch.phone!==t.phone&&!TalentPRD.phoneValid(patch.phone))throw Error('请输入有效的11位手机号');if(Array.from(patch.wechat).length>30)throw Error('微信最多30字');if(Array.from(patch.additionalInfo).length>500)throw Error('补充信息最多500字');for(const key of ['industries','contentTags','effectTags','performanceTags','riskTags','customTags'])patch[key]=listSplit(patch[key]);if(detail){delete patch.effectTags;patch.riskTags=data.get('riskTags')==='预警'?['预警']:[];}TalentPRD.write('xmfx-list-profile:'+t.id,{...listProfile(t),...patch});localStorage.setItem('xmfx-talent-liaison:'+t.id,patch.liaison);Object.assign(t,patch);onSaved();d.close();});
+ const fields=prdEmployeePicker(t)+listField('联系人','contact',t.contact==='未维护'?'':t.contact,'maxlength="10"')+listField('联系电话','phone',t.phone==='未维护'?'':t.phone,'inputmode="tel" maxlength="11"')+listField('微信','wechat',t.wechat==='未维护'?'':t.wechat,'maxlength="30"')+listField('平台垂类标签','industries',sources.platform.join('、'),'disabled')+listField('自打垂类标签','contentTags',sources.internal.join('、'))+tagFields+`<label class="list-drawer-field"><span>补充信息</span><textarea name="additionalInfo" rows="4" maxlength="500">${esc(p.additionalInfo||t.supplement||'')}</textarea></label>`;
+ const drawer=listDrawer('编辑 · '+t.name,listEditIdentity(t)+fields,'保存',(data,d)=>{const patch=Object.fromEntries(data);patch.liaisons=data.getAll('liaisons');patch.liaison=patch.liaisons.join('、');if(Array.from(patch.contact).length>10)throw Error('联系人最多10字');if(patch.phone!==t.phone&&!TalentPRD.phoneValid(patch.phone))throw Error('请输入有效的11位手机号');if(Array.from(patch.wechat).length>30)throw Error('微信最多30字');if(Array.from(patch.additionalInfo).length>500)throw Error('补充信息最多500字');for(const key of ['contentTags','effectTags','performanceTags','riskTags'])patch[key]=listSplit(patch[key]);if(detail){delete patch.effectTags;patch.riskTags=data.get('riskTags')==='预警'?['预警']:[];}TalentPRD.write('xmfx-list-profile:'+t.id,{...listProfile(t),...patch});localStorage.setItem('xmfx-talent-liaison:'+t.id,patch.liaison);Object.assign(t,patch);onSaved();d.close();});
+ bindEmployeePicker(drawer);
 }
 function prdSubmissionNotice(t){const messages=TalentPRD.notices(t);let d=document.getElementById('prdSubmitted');if(!d){d=document.createElement('dialog');d.id='prdSubmitted';document.body.append(d);}d.innerHTML=`<h3>${messages[0]}</h3>${messages.slice(1).map(v=>`<p>${esc(v)}</p>`).join('')}<button class="btn primary" type="button">知道了</button>`;d.querySelector('button').onclick=()=>d.close();d.showModal();}
 function listManageAgencies(t){
  const pending=TalentPRD.read('xmfx-list-agency-request:'+t.id),savedOwner=pending?.owner||TalentPRD.owner(t),catalog=TalentPRD.suppliers(),people=catalog.filter(s=>s.isTalent);if(savedOwner&&!people.some(s=>s.id===savedOwner.id))people.push({...savedOwner,isTalent:true,subjects:savedOwner.subjects||[{name:savedOwner.name}]});
  let draft=(pending?.agencies||TalentPRD.agencies(t)).map(r=>({...r,rate:r.rate??TalentPRD.mcnRate(r.mcn)}));
- const body=`<section><h3>管理归属达人</h3><p class="list-drawer-note">达人自身的公司、收付款信息，非MCN机构</p><label class="list-drawer-field"><span>归属达人</span><select id="prdOwner" name="ownerSupplier"><option value="">请选择供应商名称</option>${people.map(p=>`<option value="${esc(p.id)}" ${p.id===savedOwner?.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label><div id="prdOwnerSubjects"></div><div id="prdOwnerRebate" hidden>${listField('归属达人返点（%）<span class="list-required"> *</span>','ownerRate',savedOwner?.rate!=null?+(savedOwner.rate*100).toFixed(2):'','id="prdOwnerRate" type="number" min="0" max="100" step="0.01" required disabled')}</div></section><section><h3>管理归属机构</h3><p class="list-drawer-note">达人所属的MCN机构</p>${pending?'<span class="badge orange">待审批</span>':''}<div id="prdAgencies"></div><button class="btn" type="button" id="prdAddAgency">新增机构</button><div id="prdAgencyPicker" hidden><label class="list-drawer-field"><span>选择MCN供应商主体</span><select id="prdAgencySelect"><option value="">请选择</option></select></label><p id="prdBaseRate"></p><button class="btn" type="button" id="prdConfirmAgency">添加</button></div></section>`;
+ const body=`<section><h3>管理归属达人</h3><p class="list-drawer-note">达人自身的公司、收付款信息，非MCN机构</p><label class="list-drawer-field"><span>归属达人</span><select id="prdOwner" name="ownerSupplier"><option value="">请选择供应商名称</option>${people.map(p=>`<option value="${esc(p.id)}" ${p.id===savedOwner?.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label><div id="prdOwnerSubjects"></div><div id="prdOwnerRebate" hidden>${listField('归属达人返点（%）<span class="list-required"> *</span>','ownerRate',savedOwner?.rate!=null?+(savedOwner.rate*100).toFixed(2):'','id="prdOwnerRate" type="number" min="0" max="100" step="0.01" required disabled')}</div></section><section><h3>管理归属MCN</h3><p class="list-drawer-note">达人所属的MCN机构</p><div id="prdAgencies"></div><button class="btn" type="button" id="prdAddAgency">新增机构</button><div class="list-agency-card" id="prdAgencyPicker" hidden><div><select id="prdAgencySelect" name="newAgency" aria-label="选择MCN供应商主体" required disabled><option value="">请选择机构</option></select><button class="link" type="button" id="prdCancelAgency">取消添加</button></div><p id="prdBaseRate">机构返点：—</p><label class="list-drawer-field"><span>达人返点（%）<span class="list-required"> *</span></span><input id="prdNewAgencyRate" name="newAgencyRate" type="number" min="0" max="100" step="0.01" required disabled></label></div></section>`;
  const d=listDrawer('管理机构/返点 · '+t.name,body,'保存并提交',(data,drawer)=>{
   const owner=people.find(p=>p.id===data.get('ownerSupplier'));if(owner&&!TalentPRD.rateValid(data.get('ownerRate')))throw Error('归属达人返点必填，范围0–100，最多两位小数');
-  if(!owner&&!draft.some(r=>!r.exitedAt))throw Error('请至少设置一个归属达人或归属机构');
+  const agencies=[...draft];
+  if(data.has('newAgency')){
+   const subject=choices().find(item=>item.id===data.get('newAgency'));
+   if(!subject)throw Error('请选择机构');
+   const rateInput=data.get('newAgencyRate');
+   if(!TalentPRD.rateValid(rateInput))throw Error('达人返点必填，范围0–100，最多两位小数');
+   agencies.push({mcn:subject.mcn,subjectId:subject.id,subjectName:subject.name,rate:Number(rateInput)/100});
+  }
+  if(!owner&&!agencies.some(r=>!r.exitedAt))throw Error('请至少设置一个归属达人或归属机构');
   for(const r of draft)if(!r.exitedAt&&!TalentPRD.rateValid(r.rateInput??String(+(r.rate*100).toFixed(2))))throw Error('达人返点必填，范围0–100，最多两位小数');
-  const request={status:'pending',submittedAt:new Date().toISOString(),owner:owner?{id:owner.id,name:owner.name,subjects:owner.subjects,rate:Number(data.get('ownerRate'))/100}:null,agencies:draft.map(({rateInput,...r})=>r)};TalentPRD.write('xmfx-list-agency-request:'+t.id,request);drawer.close();render();prdSubmissionNotice(t);
+  const request={status:'pending',submittedAt:new Date().toISOString(),owner:owner?{id:owner.id,name:owner.name,subjects:owner.subjects,rate:Number(data.get('ownerRate'))/100}:null,agencies:agencies.map(({rateInput,...r})=>r)};TalentPRD.write('xmfx-list-agency-request:'+t.id,request);drawer.close();render();prdSubmissionNotice(t);
  });
  const ownerInput=document.getElementById('prdOwner');function showOwner(){const p=people.find(x=>x.id===ownerInput.value);document.getElementById('prdOwnerSubjects').innerHTML=p?`<div class="prd-subject-list">${p.subjects.map(s=>`<div><span class="badge gray">${s.type==='private'?'对私主体':'对公主体'}</span> ${esc(s.name)}</div>`).join('')}</div>`:'';document.getElementById('prdOwnerRebate').hidden=!p;document.getElementById('prdOwnerRate').disabled=!p;}ownerInput.onchange=showOwner;showOwner();
- function draw(){document.getElementById('prdAgencies').innerHTML=draft.map((r,i)=>`<div class="list-agency-card ${r.exitedAt?'is-exiting':''}"><div><strong>${esc(r.subjectName||listCompany(r.mcn))}</strong><button class="link" type="button" data-prd-exit="${i}">${r.exitedAt?'取消退出':'退出机构'}</button></div><p>机构返点：${(TalentPRD.mcnRate(r.mcn)*100).toFixed(2)}%</p>${r.exitedAt?'<p>退出机构 · 待审批</p>':''}<label class="list-drawer-field"><span>达人返点（%）<span class="list-required"> *</span></span><input data-prd-rate="${i}" type="number" min="0" max="100" step="0.01" required value="${esc(r.rateInput??String(+(r.rate*100).toFixed(2)))}" ${r.exitedAt?'disabled':''}></label></div>`).join('');d.querySelectorAll('[data-prd-exit]').forEach(b=>b.onclick=()=>{const r=draft[+b.dataset.prdExit];if(r.exitedAt){delete r.exitedAt;delete r.action;}else{r.exitedAt=new Date().toISOString();r.action='exit';}draw();});d.querySelectorAll('[data-prd-rate]').forEach(i=>i.oninput=()=>{const r=draft[+i.dataset.prdRate];r.rateInput=i.value;if(TalentPRD.rateValid(i.value))r.rate=Number(i.value)/100;});}draw();
+ function draw(){document.getElementById('prdAgencies').innerHTML=draft.map((r,i)=>`<div class="list-agency-card ${r.exitedAt?'is-exiting':''}"><div><strong>${esc(r.subjectName||listCompany(r.mcn))} ${pending?.agencies?.some(item=>item.mcn===r.mcn&&item.subjectId===r.subjectId)?'<span class="badge orange">待审批</span>':''}</strong><button class="link" type="button" data-prd-exit="${i}">${r.exitedAt?'取消退出':'退出机构'}</button></div><p>机构返点：${(TalentPRD.mcnRate(r.mcn)*100).toFixed(2)}%</p>${r.exitedAt?'<p>退出机构 · 待审批</p>':''}<label class="list-drawer-field"><span>达人返点（%）<span class="list-required"> *</span></span><input data-prd-rate="${i}" type="number" min="0" max="100" step="0.01" required value="${esc(r.rateInput??String(+(r.rate*100).toFixed(2)))}" ${r.exitedAt?'disabled':''}></label></div>`).join('');d.querySelectorAll('[data-prd-exit]').forEach(b=>b.onclick=()=>{const r=draft[+b.dataset.prdExit];if(r.exitedAt){delete r.exitedAt;delete r.action;}else{r.exitedAt=new Date().toISOString();r.action='exit';}draw();});d.querySelectorAll('[data-prd-rate]').forEach(i=>i.oninput=()=>{const r=draft[+i.dataset.prdRate];r.rateInput=i.value;if(TalentPRD.rateValid(i.value))r.rate=Number(i.value)/100;});}draw();
  const choices=()=>catalog.filter(s=>s.isMcn).flatMap(s=>s.subjects.map(subject=>({...subject,mcn:s.mcn,rate:s.rate}))).filter(s=>!draft.some(r=>r.mcn===s.mcn&&(r.subjectId===s.id||!r.subjectId)));
- document.getElementById('prdAddAgency').onclick=()=>{document.getElementById('prdAgencyPicker').hidden=false;document.getElementById('prdAgencySelect').innerHTML='<option value="">请选择</option>'+choices().map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');};
- document.getElementById('prdAgencySelect').onchange=e=>{const s=choices().find(s=>s.id===e.target.value);document.getElementById('prdBaseRate').textContent=s?'机构返点：'+(s.rate*100).toFixed(2)+'%':'';};
- document.getElementById('prdConfirmAgency').onclick=()=>{const s=choices().find(s=>s.id===document.getElementById('prdAgencySelect').value);if(!s)return;draft.push({mcn:s.mcn,subjectId:s.id,subjectName:s.name,rate:s.rate});document.getElementById('prdAgencyPicker').hidden=true;draw();};
+ const picker=d.querySelector('#prdAgencyPicker'),select=d.querySelector('#prdAgencySelect'),rate=d.querySelector('#prdNewAgencyRate');
+ const baseRate=d.querySelector('#prdBaseRate'),add=d.querySelector('#prdAddAgency');
+ function updateNewAgency(){
+  const subject=choices().find(item=>item.id===select.value);
+  baseRate.textContent='机构返点：'+(subject?(subject.rate*100).toFixed(2)+'%':'—');
+  rate.value=subject?String(+(subject.rate*100).toFixed(2)):'';
+ }
+ add.onclick=()=>{
+  select.innerHTML='<option value="">请选择机构</option>'+choices().map(item=>'<option value="'+esc(item.id)+'">'+esc(item.name)+'</option>').join('');
+  picker.hidden=false;add.hidden=true;select.disabled=rate.disabled=false;updateNewAgency();select.focus();
+ };
+ select.onchange=updateNewAgency;
+ d.querySelector('#prdCancelAgency').onclick=()=>{
+  picker.hidden=true;add.hidden=false;select.disabled=rate.disabled=true;add.focus();
+ };
 }
 function prdMetricsView(t){return TalentPRD.metricFields(t).map(([label,key])=>`<dt>${label}</dt><dd>${t[key]??'—'}</dd>`).join('');}
 function prdAccountIdentities(t){return TalentPRD.identities(t).map(([label,value])=>`<dt>${label}</dt><dd>${esc(value||'未获取')}</dd>`).join('');}
