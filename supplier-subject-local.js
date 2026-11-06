@@ -11,12 +11,12 @@
  let accounts=[],profiles={},attachments={};
 
  function addNavigation(){
-  const supplierLinks=[['供应商主体','新建供应商主体.html'],['供应商名称','supplier-names.html'],['MCN管理','index.html'],['MCN与达人','mcn-talents-list.html']];
+  const supplierLinks=[['供应商主体','新建供应商主体.html'],['供应商名称','supplier-names.html'],['MCN与达人','mcn-talents-list.html']];
   const businessLinks=[['达人库','talent-list.html'],['野生达人','wild-talent-list.html'],['新建达人','talent-create.html']];
   const header=document.querySelector('.rr-header');
   for(const item of header.querySelectorAll('li.el-menu-item')){
    const name=item.textContent.trim();
-   if(name==='首页')item.innerHTML='<a class="supplier-nav-link" href="index.html">首页</a>';
+   if(name==='首页')item.innerHTML='<a class="supplier-nav-link" href="mcn-talents-list.html">首页</a>';
    const links=name==='合作方中心'?supplierLinks:name==='业务中心'?businessLinks:null;
    if(links)item.innerHTML=`<details class="supplier-nav-menu"><summary>${name} ▾</summary><div>${links.map(([label,url])=>`<a href="${url}">${label}</a>`).join('')}</div></details>`;
   }

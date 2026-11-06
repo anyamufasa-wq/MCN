@@ -23,7 +23,7 @@
  document.querySelector('.mcn-quick-nav').hidden=true;
  function heading(record){
   document.title=record.name+' · MCN与达人';
-  document.querySelector('.heading').innerHTML=`<div class="identity"><div class="titleline"><h1 class="supplier-title">${esc(record.name)}</h1><span class="badge orange">${esc(record.type||'达人')}</span></div><div class="meta">${subjectMediaTags(SupplierCooperation.verticals(record,linked),'')}</div></div><div class="heading-actions">${saved?'<button class="btn" id="editSupplierName">编辑资料</button>':''}<a class="btn" href="mcn-talents-list.html${esc(params.get('listState')||'')}">返回列表</a></div>`;
+  document.querySelector('.heading').innerHTML=`<div class="identity"><div class="titleline"><h1 class="supplier-title">${esc(record.name)}</h1><span class="badge orange">${esc(record.type||'达人')}</span></div><div class="meta">${subjectMediaTags(SupplierCooperation.verticals(record,linked),'')}</div></div><div class="heading-actions">${saved?'<button class="btn" id="editSupplierName">编辑名称</button>':''}<a class="btn" href="mcn-talents-list.html${esc(params.get('listState')||'')}">返回列表</a></div>`;
   const edit=document.getElementById('editSupplierName');if(edit)edit.onclick=()=>editSupplierName(id,heading);
  }
  heading(supplier);

@@ -33,8 +33,13 @@ function listEditTalent(t) {
 }
 function listHighlightDefaults(t) { if(typeof talentHighlightTags!=='function')return {effectTags:t.effectTags||[],riskTags:t.riskTags||[]};talentHighlightTags(t);const tags=demoTalentHighlights.get(t.media+'|'+(t.channel||''))?.get(t.id);return {effectTags:tags?.stable?['爆文稳定']:[],riskTags:tags?.risks||[]}; }
 function listEditedHighlights(t) {
- const p=listProfile(t);if(!['effectTags','performanceTags','riskTags','customTags'].some(k=>Object.hasOwn(p,k)))return talentHighlightTags(t);
- return `<div class="talent-highlight-tags">${(p.effectTags||[]).map(v=>`<span class="talent-highlight stable-highlight">${esc(v)}</span>`).join('')}${(p.performanceTags||[]).map(v=>`<span class="badge green">${esc(v)}</span>`).join('')}${p.riskTags?.length?`<span class="talent-risk-wrap" tabindex="0"><span class="talent-highlight risk-highlight">合作风险</span><span class="talent-risk-tooltip" role="tooltip">${p.riskTags.map(v=>`<span>${esc(v)}</span>`).join('')}</span></span>`:''}${(p.customTags||[]).map(v=>`<span class="badge">${esc(v)}</span>`).join('')}</div>`;
+ const p=listProfile(t);
+ const performanceTags=[...new Set([...(p.performanceTags||[]),...(t.id==='T0-0'?['改稿配合']:[])])];
+ const performance=performanceTags.map(value=>`<span class="badge green">${esc(value)}</span>`).join('');
+ if(!['effectTags','performanceTags','riskTags','customTags'].some(k=>Object.hasOwn(p,k))){
+  return talentHighlightTags(t)+(performance?'<div class="talent-highlight-tags">'+performance+'</div>':'');
+ }
+ return `<div class="talent-highlight-tags">${(p.effectTags||[]).map(v=>`<span class="talent-highlight stable-highlight">${esc(v)}</span>`).join('')}${performance}${p.riskTags?.length?`<span class="talent-risk-wrap" tabindex="0"><span class="talent-highlight risk-highlight">合作风险</span><span class="talent-risk-tooltip" role="tooltip">${p.riskTags.map(v=>`<span>${esc(v)}</span>`).join('')}</span></span>`:''}${(p.customTags||[]).map(v=>`<span class="badge">${esc(v)}</span>`).join('')}</div>`;
 }
 function listOwnerOptions(t,owner) {
  const options=[];

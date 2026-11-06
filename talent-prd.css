@@ -9,3 +9,26 @@
 .prd-employee-options details summary{border:0;background:#f5f8fc}
 .prd-employee-department{margin:4px 0 4px 14px}
 .prd-employee-department label{margin-left:12px}
+.detail-quote-table{table-layout:fixed;white-space:normal;width:100%}
+.detail-quote-table th{text-align:center;background:#f3f6fa;color:#29384c;font-weight:600}
+.detail-quote-table th,.detail-quote-table td{border-right:1px solid #e7edf5}
+.detail-quote-table th:last-child,.detail-quote-table td:last-child{border-right:0}
+.detail-quote-table td{padding:10px;vertical-align:top}
+.detail-quote-table .detail-quote-empty{text-align:center;vertical-align:middle;color:#7b8798}
+.detail-quote-scroll{max-height:280px;overflow:auto}
+.detail-quote-card{background:#f4f7fb;border-radius:5px;overflow:hidden}
+.detail-quote-card+.detail-quote-card{margin-top:8px}
+.detail-quote-subheading{padding:6px 9px;background:#eaf0fb;font-weight:600}
+.detail-quote-item{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:6px 9px}
+.detail-quote-item span:first-child{min-width:0;overflow-wrap:anywhere}
+.detail-quote-item span:last-child{white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums}
+@media(max-width:900px){.detail-quote-table{min-width:620px}}
+.prd-create-bulk #prdBulkAgency,.prd-create-bulk #prdBulkOwner{width:230px;max-width:100%}
+.batch-table .prd-create-identity{min-width:180px}
+.batch-table .prd-create-identity input{display:block;min-width:0;max-width:100%;box-sizing:border-box}
+.batch-table .prd-create-affiliation{min-width:150px}
+.batch-table .prd-create-affiliation:has(.prd-inline-rebate){min-width:300px}
+.prd-affiliation-fields{display:flex;align-items:center;gap:8px}
+.batch-table .prd-affiliation-fields select{flex:1;min-width:0;max-width:none}
+.prd-affiliation-fields .prd-inline-rebate{display:flex;align-items:center;gap:4px;margin:0;white-space:nowrap}
+.batch-table .prd-affiliation-fields .prd-inline-rebate input{width:64px;min-width:0;margin:0;box-sizing:border-box}
